@@ -1,0 +1,50 @@
+---
+
+_arch_map:
+  i386: '386'
+  x86_64: 'amd64'
+  aarch64: 'arm64'
+  armv7l: 'armv7'
+  armv6l: 'armv6'
+
+_cpu_arch: "_arch_map[ansible_architecture] | default(ansible_architecture) "
+
+_grf_metrics_api_url: https://prometheus-prod-01-{{ grf_location }}.grafana.net/api/prom/push
+_grf_logs_api_url: https://logs-prod-{{ grf_location }}.grafana.net/api/prom/push
+
+_grf_agent_systemd:
+  - service_name: grafana-agent.service
+    service_enabled: true
+    service_status: started
+    service_config:
+      Unit:
+        Description: Grafana Cloud agent
+        Wants: network-online.target
+        After: network-online.target
+      Service:
+        Type: simple
+        ExecStart: |
+          {{ grf_agent_location }}/agent-linux-{{ _cpu_arch }} --config.file={{ grf_config_location }}/agent-config.yaml
+        Restart: always
+      Install:
+        WantedBy: multi-user.target
+
+_promtail_agent_systemd:
+  - service_name: grafana-agent.service
+    service_enabled: true
+    service_status: started
+    service_config:
+      Unit:
+        Description: Grafana Loki Promtail agent
+      Service:
+        Type: simple
+        WorkingDirectory: "{{ grf_promtail_location }}"
+        ExecStartPre: /bin/sleep 30
+        ExecStart: |
+          {{ grf_promtail_location }}/promtail-linux-{{ _cpu_arch }} --config.file={{ grf_promtail_location }}/promtail-config.yaml
+        SuccessExitStatus: 143
+        TimeoutStopSec: 10
+        Restart: on-failure
+        RestartSec: 5
+      Install:
+        WantedBy: multi-user.target

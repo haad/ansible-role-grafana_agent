@@ -1,7 +1,14 @@
 ---
+
+- name: Check if we have required variables
+  assert:
+    that:
+        - grf_api_loki_user is defined
+        - grf_api_key is defined
+
 - name: Download latest Promtail release
   get_url:
-    url: "https://github.com/grafana/loki/releases/latest/download/promtail-linux-{{ promtail_type[ansible_architecture] }}.zip"
+    url: "{{ grf_promtail_release_url }}"
     dest: "/tmp/promtail-linux.zip"
     mode: '0644'
 
@@ -9,34 +16,25 @@
   file:
     state: directory
     recurse: yes
-    path: "{{ promtail_location }}"
+    path: "{{ grf_promtail_location }}"
     mode: 0755
 
 - name: Unarchive Promtail
   unarchive:
     src: "/tmp/promtail-linux.zip"
-    dest: "{{ promtail_location }}"
+    dest: "{{ grf_promtail_location }}"
     remote_src: yes
     mode: '0755'
 
 - name: Create an Promtail config file
   template:
     src: "{{ grafana_promtail_config_template }}"
-    dest: "{{ promtail_location }}/promtail-config.yaml"
+    dest: "{{ grf_promtail_location }}/promtail-config.yaml"
     mode: 0644
     force: yes
 
-- name: Create Systemd service
-  block:
-    - name: Template the new service file for Promtail agent
-      template:
-        src: "{{ grafana_promtail_systemd_template }}"
-        dest: "{{ systemd_service_folder }}/promtail.service"
-        mode: '0644'
-
-    - name: Reload and start service Promtail agent
-      service:
-        name: promtail
-        state: restarted
-        daemon_reload: yes
-        enabled: yes
+- name: Ensure Grafana Agent Service
+  include_role:
+    name: systemd-service
+  vars:
+    systemd_service: "{{ _promtail_agent_systemd }}"

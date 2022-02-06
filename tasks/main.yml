@@ -1,7 +1,18 @@
 ---
+
+- name: Check if we have required variables
+  assert:
+    that:
+        - grf_api_prometheus_user is defined
+        - grf_api_key is defined
+
+- include_vars: "{{ item }}"
+  with_first_found:
+    - default.yml
+
 - name: Download Agent file
   get_url:
-    url: "https://github.com/grafana/agent/releases/latest/download/agent-linux-{{ type[ansible_architecture] }}.zip"
+    url: "{{ grf_agent_release_url }}"
     dest: "/tmp/agent-linux.zip"
     mode: '0644'
 
@@ -9,12 +20,11 @@
   package:
     name: unzip
     state: present
-  when: install_unzip|bool
 
 - name: Unarchive Agent
   unarchive:
     src: "/tmp/agent-linux.zip"
-    dest: "{{ agent_location }}"
+    dest: "{{ grf_agent_location }}"
     remote_src: yes
     mode: '0755'
 
@@ -22,30 +32,21 @@
   file:
     state: directory
     recurse: yes
-    path: "{{ config_location }}"
+    path: "{{ grf_config_location }}"
     mode: 0755
 
 - name: Create Agent's config file
   template:
-    src: "{{ grafana_agent_config_template }}"
-    dest: "{{ config_location }}/agent-config.yaml"
+    src: "{{ grf_agent_config_template }}"
+    dest: "{{ grf_config_location }}/agent-config.yaml"
     mode: 0644
     force: yes
 
-- name: Create Systemd service
-  block:
-    - name: Template the new service file for Grafana agent
-      template:
-        src: "{{ grafana_agent_systemd_template }}"
-        dest: "{{ systemd_service_folder }}/grafana-agent.service"
-        mode: '0644'
-
-    - name: Reload and start service Grafana agent
-      service:
-        name: grafana-agent
-        state: restarted
-        daemon_reload: yes
-        enabled: yes
+- name: Ensure Grafana Agent Service
+  include_role:
+    name: systemd-service
+  vars:
+    systemd_service: "{{ _grf_agent_systemd }}"
 
 - name: Install Promtail
   include_tasks: "promtail.yml"

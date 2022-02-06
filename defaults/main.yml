@@ -1,20 +1,24 @@
 ---
-# ansible_architecture
-type:
-  x86_64: amd64
-  armv7l: armv7
-  aarch64: arm64
-promtail_type:
-  x86_64: amd64
-  armv7l: arm
-  aarch64: arm64
-agent_location: /usr/local/bin
-config_location: /etc/grafana
-promtail_location: /opt/promtail
-install_unzip: true
+grf_config_location: /etc/grafana
 systemd_service_folder: /etc/systemd/system
-grafana_location: us-central1
-grafana_agent_config_template: agent-config.yaml.j2
-grafana_agent_systemd_template: grafana-agent.service.j2
-grafana_promtail_config_template: promtail-config.yaml.j2
-grafana_promtail_systemd_template: promtail.service.j2
+
+grf_api_metrics_url: "{{ _grf_metrics_api_url }}"
+grf_api_region: eu-west-0
+
+grf_agent_version: v0.22.0
+grf_agent_release_url: "https://github.com/grafana/agent/releases/{{ grf_agent_version }}/download/agent-linux-{{ _cpu_arch }}.zip"
+
+grf_agent_location: /usr/local/bin
+grf_agent_config_template: agent-config.yaml.j2
+grf_agent_systemd_template: grafana-agent.service.j2
+
+grf_logs_api_url: "{{ _grf_logs_api_url }}"
+
+grf_promtail_version: v2.4.2
+grf_promtail_release_url: "https://github.com/grafana/loki/releases/{{ grf_promtail_version }}/download/promtail-linux-{{ _cpu_arch }}.zip"
+grf_promtail_location: /opt/promtail
+grf_promtail_config_template: promtail-config.yaml.j2
+grf_promtail_systemd_template: promtail.service.j2
+
+#"https://logs-prod-eu-west-0.grafana.net/api/prom/push"
+#"https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"
