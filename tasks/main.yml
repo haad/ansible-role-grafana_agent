@@ -5,6 +5,7 @@
     that:
         - grf_api_prometheus_user is defined
         - grf_api_key is defined
+        - grf_api_loki_user is defined
 
 - include_vars: "{{ item }}"
   with_first_found:
@@ -13,6 +14,7 @@
 - name: Download Agent file
   get_url:
     url: "{{ grf_agent_release_url }}"
+    checksum: "sha256:{{grf_agent_checksum_url }}"
     dest: "/tmp/agent-linux.zip"
     mode: '0644'
 

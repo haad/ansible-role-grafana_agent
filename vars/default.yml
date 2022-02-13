@@ -7,10 +7,59 @@ _arch_map:
   armv7l: 'armv7'
   armv6l: 'armv6'
 
-_cpu_arch: "_arch_map[ansible_architecture] | default(ansible_architecture) "
+_cpu_arch: "{{ _arch_map[ansible_architecture] | default(ansible_architecture) }}"
 
-_grf_metrics_api_url: https://prometheus-prod-01-{{ grf_location }}.grafana.net/api/prom/push
-_grf_logs_api_url: https://logs-prod-{{ grf_location }}.grafana.net/api/prom/push
+_grf_metrics_api_url: https://prometheus-prod-01-{{ grf_api_region }}.grafana.net/api/prom/push
+_grf_logs_api_url: https://logs-prod-{{ grf_api_region }}.grafana.net/api/prom/push
+
+
+_grf_agent_default_config:
+  server:
+    http_listen_port: 12345
+
+  integrations:
+    node_exporter:
+      enabled: true
+    prometheus_remote_write:
+      - url: "{{ grf_api_metrics_url }}"
+        basic_auth:
+          username: "{{ grf_api_prometheus_user }}"
+          password: "{{ grf_api_key }}"
+  logs:
+    configs:
+      - clients:
+        - basic_auth:
+            password: "{{ grf_api_key }}"
+            username: "{{ grf_api_loki_user }}"
+          url: "{{ grf_logs_api_url }}"
+        name: integrations
+        positions:
+          filename: /tmp/positions.yaml
+        target_config:
+          sync_period: 10s
+
+  metrics:
+    configs:
+      - name: integrations
+        remote_write:
+          - url: "{{ grf_api_metrics_url }}"
+            basic_auth:
+              username: "{{ grf_api_prometheus_user }}"
+              password: "{{ grf_api_key }}"
+      - name: OpenWRT
+        scrape_configs:
+          - job_name: OpenWRT
+            static_configs:
+              - targets: ['172.16.250.1:9100']
+        remote_write:
+        - basic_auth:
+            password: "{{ grf_api_prometheus_user }}"
+            username: "{{ grf_api_key }}"
+          url: "{{ grf_api_metrics_url }}"
+
+    global:
+      scrape_interval: 60s
+    wal_directory: /tmp/grafana-agent-wal
 
 _grf_agent_systemd:
   - service_name: grafana-agent.service
